@@ -1,0 +1,26 @@
+appId: fr.nifas.manager
+productName: "NIFAS Gestion"
+directories:
+  output: ../dist/manager-installer
+  buildResources: build-resources
+files:
+  - main-manager.js
+  - preload-pos.js
+  - node_modules/**
+  - ../frontend/dist/manager/**
+extraResources:
+  - from: ../backend
+    to: backend
+    filter:
+      - "**/*"
+      - "!**/__pycache__/**"
+      - "!**/*.pyc"
+win:
+  target: nsis
+  icon: build-resources/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerLanguages:
+    - French
+  language: 1036

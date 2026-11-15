@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Configuration NIFAS Caisse</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Inter", sans-serif;
+      background: #131a2e;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 24px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 400px;
+      color: #131a2e;
+    }
+    h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    p { font-size: 13px; color: #666; margin-bottom: 24px; }
+    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+    input {
+      width: 100%;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: #f7a720; }
+    button {
+      width: 100%;
+      background: #f7a720;
+      color: #131a2e;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button:hover { background: #e09500; }
+    .error { color: #ef4444; font-size: 12px; margin-top: -12px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>NIFAS — Configuration caisse</h1>
+    <p>Saisir une seule fois à l'installation.</p>
+
+    <label>URL du serveur</label>
+    <input id="server_url" type="text" placeholder="http://192.168.1.10:8000" />
+
+    <label>Numéro de caisse (ID)</label>
+    <input id="register_id" type="number" min="1" placeholder="1" />
+
+    <div id="error" class="error" style="display:none"></div>
+
+    <button onclick="save()">Enregistrer et démarrer</button>
+  </div>
+
+  <script>
+    async function save() {
+      const url = document.getElementById("server_url").value.trim();
+      const rid = document.getElementById("register_id").value.trim();
+      const err = document.getElementById("error");
+
+      if (!url || !rid) {
+        err.textContent = "Les deux champs sont obligatoires.";
+        err.style.display = "block";
+        return;
+      }
+
+      // Test de connexion au serveur
+      try {
+        const res = await fetch(url + "/api/health");
+        if (!res.ok) throw new Error();
+      } catch {
+        err.textContent = "Impossible de joindre le serveur. Vérifiez l'URL et le réseau.";
+        err.style.display = "block";
+        return;
+      }
+
+      err.style.display = "none";
+      window.electronConfig.save({ server_url: url, register_id: parseInt(rid) });
+    }
+  </script>
+</body>
+</html>

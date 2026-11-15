@@ -1,0 +1,16 @@
+{
+  "name": "nifas-pos",
+  "version": "1.0.0",
+  "private": true,
+  "main": "main-manager.js",
+  "scripts": {
+    "dev:manager": "electron main-manager.js",
+    "dev:pos": "electron main-pos.js",
+    "build:manager": "electron-builder --config electron-builder-manager.yml",
+    "build:pos": "electron-builder --config electron-builder-pos.yml"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  }
+}

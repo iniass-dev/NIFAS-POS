@@ -1,0 +1,19 @@
+appId: fr.nifas.pos
+productName: "NIFAS Caisse"
+directories:
+  output: ../dist/pos-installer
+  buildResources: build-resources
+files:
+  - main-pos.js
+  - preload-pos.js
+  - node_modules/**
+  - ../frontend/dist/pos/**
+win:
+  target: nsis
+  icon: build-resources/icon-pos.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerLanguages:
+    - French
+  language: 1036
