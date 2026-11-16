@@ -38,6 +38,7 @@ class OrderLineResponse(BaseModel):
 class OrderPaymentResponse(BaseModel):
     id: int
     payment_method_id: int
+    payment_method_name: str = ""
     amount: float
 
     model_config = {"from_attributes": True}
@@ -49,6 +50,10 @@ class OrderResponse(BaseModel):
     session_id: int
     register_id: int
     cashier_id: int
+    cashier_name: str = ""
+    store_name: str | None = None
+    store_address: str | None = None
+    store_phone: str | None = None
     state: OrderState
     amount_untaxed: float
     amount_tax: float

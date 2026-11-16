@@ -16,6 +16,7 @@ class StoreCreate(BaseModel):
     address: str | None = None
     city: str | None = None
     phone: str | None = None
+    tax_included: bool = True
 
 
 class StoreUpdate(BaseModel):
@@ -24,6 +25,7 @@ class StoreUpdate(BaseModel):
     city: str | None = None
     phone: str | None = None
     active: bool | None = None
+    tax_included: bool | None = None
 
 
 class StoreResponse(BaseModel):
@@ -33,6 +35,7 @@ class StoreResponse(BaseModel):
     city: str | None
     phone: str | None
     active: bool
+    tax_included: bool
 
     model_config = {"from_attributes": True}
 

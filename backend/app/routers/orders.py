@@ -9,13 +9,61 @@ from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models.order import Order, OrderLine, OrderPayment, OrderState
 from app.models.product import Product
+from app.models.register import Register
 from app.models.session import CashSession, SessionState
 from app.models.stock import StockMove, StockMoveType
+from app.models.store import Store
 from app.models.user import User
 from app.schemas.order import OrderCreate, OrderResponse
 from app.utils.security import RequireCashier, get_current_user
 
 router = APIRouter(prefix="/orders", tags=["orders"])
+
+
+async def _load_full_order(order_id: int, db: AsyncSession) -> OrderResponse:
+    result = await db.execute(
+        select(Order)
+        .options(
+            selectinload(Order.lines),
+            selectinload(Order.payments).selectinload(OrderPayment.payment_method),
+            selectinload(Order.cashier),
+            selectinload(Order.register).selectinload(Register.store),
+        )
+        .where(Order.id == order_id)
+    )
+    o = result.scalar_one()
+    store: Store | None = o.register.store if o.register else None
+    return OrderResponse(
+        id=o.id,
+        reference=o.reference,
+        session_id=o.session_id,
+        register_id=o.register_id,
+        cashier_id=o.cashier_id,
+        cashier_name=o.cashier.name if o.cashier else "",
+        store_name=store.name if store else None,
+        store_address=store.address if store else None,
+        store_phone=store.phone if store else None,
+        state=o.state,
+        amount_untaxed=float(o.amount_untaxed),
+        amount_tax=float(o.amount_tax),
+        amount_total=float(o.amount_total),
+        amount_paid=float(o.amount_paid),
+        amount_return=float(o.amount_return),
+        created_at=o.created_at,
+        paid_at=o.paid_at,
+        lines=[
+            {"id": l.id, "product_id": l.product_id, "product_name": l.product_name,
+             "qty": float(l.qty), "unit_price": float(l.unit_price), "discount": float(l.discount),
+             "tax_rate": float(l.tax_rate), "subtotal": float(l.subtotal)}
+            for l in o.lines
+        ],
+        payments=[
+            {"id": p.id, "payment_method_id": p.payment_method_id,
+             "payment_method_name": p.payment_method.name if p.payment_method else "",
+             "amount": float(p.amount)}
+            for p in o.payments
+        ],
+    )
 
 
 @router.post("/", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
@@ -118,23 +166,12 @@ async def _create_order_inner(data, db, current_user):
         ))
 
     await db.flush()
-
-    result = await db.execute(
-        select(Order)
-        .options(selectinload(Order.lines), selectinload(Order.payments))
-        .where(Order.id == order.id)
-    )
-    return result.scalar_one()
+    return await _load_full_order(order.id, db)
 
 
 @router.get("/{order_id}", response_model=OrderResponse)
 async def get_order(order_id: int, db: Annotated[AsyncSession, Depends(get_db)], _=RequireCashier):
-    result = await db.execute(
-        select(Order)
-        .options(selectinload(Order.lines), selectinload(Order.payments))
-        .where(Order.id == order_id)
-    )
-    order = result.scalar_one_or_none()
-    if not order:
+    check = await db.get(Order, order_id)
+    if not check:
         raise HTTPException(status_code=404, detail="Commande introuvable")
-    return order
+    return await _load_full_order(order_id, db)

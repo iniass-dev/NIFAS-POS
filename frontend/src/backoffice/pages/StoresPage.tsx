@@ -10,6 +10,7 @@ interface Store {
   city: string | null;
   phone: string | null;
   active: boolean;
+  tax_included: boolean;
 }
 
 interface Register {
@@ -76,6 +77,7 @@ export default function StoresPage() {
       address: (fd.get("address") as string) || null,
       city: (fd.get("city") as string) || null,
       phone: (fd.get("phone") as string) || null,
+      tax_included: fd.get("tax_included") === "on",
     });
   }
 
@@ -127,9 +129,14 @@ export default function StoresPage() {
                 Modifier
               </button>
             </div>
-            <span className={`mt-2 inline-block text-xs px-2 py-0.5 rounded-full ${store.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-              {store.active ? "Actif" : "Inactif"}
-            </span>
+            <div className="mt-2 flex gap-1 flex-wrap">
+              <span className={`text-xs px-2 py-0.5 rounded-full ${store.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                {store.active ? "Actif" : "Inactif"}
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">
+                TVA {store.tax_included ? "incluse" : "affichée"}
+              </span>
+            </div>
           </div>
         ))}
       </div>
@@ -177,6 +184,10 @@ export default function StoresPage() {
               <input name="city" placeholder="Ville" defaultValue={editingStore?.city ?? ""} className="w-full border rounded-lg px-3 py-2 text-sm" />
               <input name="address" placeholder="Adresse" defaultValue={editingStore?.address ?? ""} className="w-full border rounded-lg px-3 py-2 text-sm" />
               <input name="phone" placeholder="Téléphone" defaultValue={editingStore?.phone ?? ""} className="w-full border rounded-lg px-3 py-2 text-sm" />
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" name="tax_included" defaultChecked={editingStore?.tax_included ?? true} className="accent-gold w-4 h-4" />
+                <span>TVA incluse dans les prix (ne pas afficher sur le ticket)</span>
+              </label>
               <div className="flex gap-2 pt-1">
                 <button type="submit" className="flex-1 bg-gold text-marine font-semibold py-2 rounded-lg text-sm hover:bg-yellow-500">Enregistrer</button>
                 <button type="button" onClick={() => { setShowStoreForm(false); setEditingStore(null); }} className="flex-1 border py-2 rounded-lg text-sm hover:bg-gray-50">Annuler</button>

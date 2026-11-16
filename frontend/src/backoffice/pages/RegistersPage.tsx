@@ -9,6 +9,81 @@ interface PaymentMethod { id: number; name: string; type: string; active: boolea
 const PM_TYPES = ["cash", "card", "check", "transfer", "voucher", "other"];
 const PM_TYPE_LABELS: Record<string, string> = { cash: "Espèces", card: "Carte bancaire", check: "Chèque", transfer: "Virement", voucher: "Bon d'achat", other: "Autre" };
 
+function RegisterRow({ register, allPm }: { register: Register; allPm: PaymentMethod[] }) {
+  const qc = useQueryClient();
+  const [expanded, setExpanded] = useState(false);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  const { isFetching } = useQuery<PaymentMethod[]>({
+    queryKey: ["register-pm", register.id],
+    queryFn: () => api.get(`/registers/${register.id}/payment-methods`).then((r) => r.data),
+    enabled: expanded,
+    onSuccess: (data: PaymentMethod[]) => { if (!loaded) { setSelected(data.map((p) => p.id)); setLoaded(true); } },
+  });
+
+  const save = useMutation({
+    mutationFn: () => api.put(`/registers/${register.id}/payment-methods`, { payment_method_ids: selected }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["register-pm", register.id] }); toast.success("Modes de paiement mis à jour"); },
+    onError: () => toast.error("Erreur"),
+  });
+
+  function toggle(id: number) {
+    setSelected((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  }
+
+  return (
+    <div className="border-b border-gray-50 last:border-0">
+      <div
+        className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <div>
+          <p className="font-medium text-sm">{register.name}</p>
+          {register.description && <p className="text-xs text-gray-500">{register.description}</p>}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs px-2 py-0.5 rounded-full ${register.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+            {register.active ? "Active" : "Inactive"}
+          </span>
+          <span className="text-gray-400 text-sm">{expanded ? "▲" : "▼"}</span>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="px-4 pb-4 bg-gray-50">
+          <p className="text-xs font-semibold text-gray-500 mb-2 mt-1">Modes de paiement</p>
+          {isFetching ? (
+            <p className="text-xs text-gray-400">Chargement...</p>
+          ) : (
+            <div className="space-y-1.5">
+              {allPm.map((pm) => (
+                <label key={pm.id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(pm.id)}
+                    onChange={() => toggle(pm.id)}
+                    className="accent-gold"
+                  />
+                  <span className="text-sm">{pm.name}</span>
+                  <span className="text-xs text-gray-400">{PM_TYPE_LABELS[pm.type] ?? pm.type}</span>
+                </label>
+              ))}
+              <button
+                onClick={() => save.mutate()}
+                disabled={save.isPending}
+                className="mt-2 text-xs bg-gold text-marine font-semibold px-3 py-1.5 rounded-lg hover:bg-yellow-500 disabled:opacity-50"
+              >
+                {save.isPending ? "Enregistrement..." : "Enregistrer"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function RegistersPage() {
   const qc = useQueryClient();
   const [showRegForm, setShowRegForm] = useState(false);
@@ -41,15 +116,10 @@ export default function RegistersPage() {
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             {registers.map((r) => (
-              <div key={r.id} className="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-sm">{r.name}</p>
-                  {r.description && <p className="text-xs text-gray-500">{r.description}</p>}
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${r.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>{r.active ? "Active" : "Inactive"}</span>
-              </div>
+              <RegisterRow key={r.id} register={r} allPm={paymentMethods} />
             ))}
           </div>
+          <p className="text-xs text-gray-400">Cliquez sur une caisse pour gérer ses modes de paiement.</p>
         </div>
 
         <div className="space-y-3">

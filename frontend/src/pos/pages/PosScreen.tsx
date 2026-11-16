@@ -6,6 +6,7 @@ import { api } from "@/shared/api";
 import { usePosStore, CartLine } from "@/shared/store/posStore";
 import { useAuthStore } from "@/shared/store/authStore";
 import PaymentModal from "../components/PaymentModal";
+import ReceiptModal, { ReceiptData } from "../components/ReceiptModal";
 import { formatCFA } from "@/shared/currency";
 
 interface Product {
@@ -25,6 +26,14 @@ interface Category {
   name: string;
 }
 
+interface StoreInfo {
+  store_name: string | null;
+  store_address: string | null;
+  store_city: string | null;
+  store_phone: string | null;
+  store_tax_included: boolean;
+}
+
 export default function PosScreen() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
@@ -33,6 +42,13 @@ export default function PosScreen() {
   const [search, setSearch] = useState("");
   const [selectedCat, setSelectedCat] = useState<number | null>(null);
   const [showPayment, setShowPayment] = useState(false);
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [storeInfo, setStoreInfo] = useState<StoreInfo>({ store_name: null, store_address: null, store_city: null, store_phone: null, store_tax_included: true });
+
+  useEffect(() => {
+    const rid = register_id ?? parseInt(window.localStorage.getItem("register_id") ?? "1");
+    api.get(`/registers/${rid}`).then(({ data }) => setStoreInfo(data)).catch(() => {});
+  }, [register_id]);
   const bufferTimeout = useRef<ReturnType<typeof setTimeout>>();
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -88,9 +104,9 @@ export default function PosScreen() {
         payments,
       }),
     onSuccess: (res) => {
-      toast.success(`Commande ${res.data.reference} enregistrée`);
       clearCart();
       setShowPayment(false);
+      setReceipt({ ...res.data, store_tax_included: storeInfo.store_tax_included } as ReceiptData);
     },
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Erreur lors de l'enregistrement";
@@ -113,7 +129,16 @@ export default function PosScreen() {
 
       {/* Topbar */}
       <div className="h-12 bg-marine flex items-center px-4 gap-4 shrink-0">
-        <span className="text-white font-heading font-bold text-sm tracking-wide">NIFAS POS</span>
+        <div className="flex flex-col leading-tight">
+          <span className="text-white font-heading font-bold text-sm tracking-wide">
+            {storeInfo.store_name ?? "POS"}
+          </span>
+          {(storeInfo.store_address || storeInfo.store_city || storeInfo.store_phone) && (
+            <span className="text-white/50 text-xs">
+              {[storeInfo.store_address, storeInfo.store_city, storeInfo.store_phone].filter(Boolean).join(" · ")}
+            </span>
+          )}
+        </div>
         <div className="flex-1" />
         <span className="text-white/60 text-xs">{user?.user_name}</span>
         <button
@@ -303,6 +328,10 @@ export default function PosScreen() {
           onClose={() => setShowPayment(false)}
           loading={orderMutation.isPending}
         />
+      )}
+
+      {receipt && (
+        <ReceiptModal data={receipt} onClose={() => setReceipt(null)} />
       )}
     </div>
   );
